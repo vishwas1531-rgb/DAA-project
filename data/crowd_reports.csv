@@ -1,0 +1,9 @@
+report_id,route_id,stop_id,crowd_level,passenger_count,report_time,source,confidence
+1,R01,101,3,45,2026-10-23T11:30:00,User_App,0.85
+2,R01,102,2,25,2026-10-23T11:35:00,Conductor_Terminal,0.95
+3,R02,101,4,78,2026-10-23T11:40:00,User_App,0.80
+4,R03,104,1,12,2026-10-23T10:15:00,Sensor_Automatic,0.90
+5,R05,103,2,30,2026-10-23T11:50:00,User_App,0.75
+6,R04,110,3,50,2026-10-23T11:45:00,User_App,0.82
+7,R08,107,5,92,2026-10-23T11:55:00,Conductor_Terminal,0.98
+8,R09,109,2,22,2026-10-23T08:00:00,User_App,0.60
