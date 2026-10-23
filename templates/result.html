@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journey Results - PMPML Estimator</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="logo">🚌 PMPML Crowd Estimator</div>
+        <a href="/" class="nav-link">← Back to Search</a>
+    </header>
+
+    <main class="container">
+        <div id="loading" class="loading-spinner">Analyzing routes using C++ DAA Engine...</div>
+        <div id="error-container" class="card error-card hidden"></div>
+
+        <div id="results-content" class="hidden">
+            <div class="card result-header-card">
+                <h2>Recommended Route</h2>
+                <div class="route-subtitle">
+                    From <span id="res-origin" class="highlight"></span> to <span id="res-dest" class="highlight"></span>
+                </div>
+                <div id="res-reason" class="badge"></div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Travel Time</div>
+                    <div class="metric-value"><span id="res-time"></span> mins</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Transfers</div>
+                    <div class="metric-value" id="res-transfers"></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Max Crowd Level</div>
+                    <div class="metric-value" id="res-crowd"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Stop Sequence</h3>
+                <ol id="res-path-list" class="path-timeline"></ol>
+            </div>
+
+            <div id="alternatives-section" class="card hidden">
+                <h3>Alternative Routes Computed</h3>
+                <div id="alternatives-list"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dataStr = sessionStorage.getItem('journey_result');
+            const loading = document.getElementById('loading');
+            const errCard = document.getElementById('error-container');
+            const content = document.getElementById('results-content');
+
+            if (!dataStr) {
+                loading.classList.add('hidden');
+                errCard.textContent = "No journey search data found. Please return to home and submit search.";
+                errCard.classList.remove('hidden');
+                return;
+            }
+
+            const res = JSON.parse(dataStr);
+            loading.classList.add('hidden');
+
+            if (res.error) {
+                errCard.textContent = res.error;
+                errCard.classList.remove('hidden');
+                return;
+            }
+
+            content.classList.remove('hidden');
+            document.getElementById('res-origin').textContent = res.origin_name;
+            document.getElementById('res-dest').textContent = res.destination_name;
+            document.getElementById('res-reason').textContent = res.recommended.reason;
+            document.getElementById('res-time').textContent = res.recommended.travel_time;
+            document.getElementById('res-transfers').textContent = res.recommended.transfers;
+
+            const crowdElem = document.getElementById('res-crowd');
+            const clvl = res.recommended.crowd_level;
+            crowdElem.textContent = `${clvl} / 5`;
+            if (clvl <= 2) crowdElem.className = 'metric-value crowd-low';
+            else if (clvl === 3) crowdElem.className = 'metric-value crowd-mid';
+            else crowdElem.className = 'metric-value crowd-high';
+
+            const pathList = document.getElementById('res-path-list');
+            res.recommended.path.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = `${item.stop_name} (ID: ${item.stop_id})`;
+                pathList.appendChild(li);
+            });
+
+            if (res.alternatives && res.alternatives.length > 0) {
+                const altSection = document.getElementById('alternatives-section');
+                const altList = document.getElementById('alternatives-list');
+                altSection.classList.remove('hidden');
+
+                res.alternatives.forEach(alt => {
+                    const div = document.createElement('div');
+                    div.className = 'alt-item';
+                    div.innerHTML = `<strong>${alt.reason}</strong>: ${alt.travel_time} mins | Transfers: ${alt.transfers} | Crowd Level: ${alt.crowd_level}/5`;
+                    altList.appendChild(div);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
