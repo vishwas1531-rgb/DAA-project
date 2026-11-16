@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plan your trip</title>
+  <style>
+    :root {
+      --paper: #f5f7f6;
+      --surface: #ffffff;
+      --ink: #14262b;
+      --muted: #5b6e73;
+      --line: #d3dcdc;
+      --route: #0b7a75;
+      --route-dark: #08524f;
+      --alert: #b3261e;
+      --ok: #1b6e3c;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #0f1a1c;
+        --surface: #172427;
+        --ink: #e6efee;
+        --muted: #96aaad;
+        --line: #2b3d40;
+        --route: #3cc3bb;
+        --route-dark: #7fdcd5;
+        --alert: #ff8a80;
+        --ok: #7bd69a;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+      line-height: 1.5;
+    }
+    main { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: 2rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+    h2 { font-size: 1.15rem; margin: 0 0 12px; }
+    .sub { color: var(--muted); margin: 0 0 28px; }
+
+    /* The trip form is drawn as a line: two stops joined by a route-coloured rail */
+    .trip {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 22px 22px 22px 56px;
+    }
+    .trip::before {
+      content: "";
+      position: absolute;
+      left: 27px; top: 46px; bottom: 112px;
+      width: 4px;
+      background: var(--route);
+      border-radius: 2px;
+    }
+    .stop-field { position: relative; margin-bottom: 18px; }
+    .stop-field::before {
+      content: "";
+      position: absolute;
+      left: -39px; top: 34px;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 4px solid var(--route);
+    }
+    label { display: block; font-weight: 600; margin-bottom: 6px; }
+    select, input[type="number"] {
+      width: 100%;
+      padding: 11px 12px;
+      font: inherit;
+      color: var(--ink);
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+    select:focus-visible, input:focus-visible, button:focus-visible, summary:focus-visible {
+      outline: 3px solid var(--route);
+      outline-offset: 2px;
+    }
+    fieldset { border: 0; padding: 0; margin: 4px 0 20px; }
+    legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
+    .choices { display: flex; flex-wrap: wrap; gap: 8px; }
+    .choices label {
+      display: inline-flex; align-items: center; gap: 8px;
+      margin: 0; padding: 8px 14px;
+      font-weight: 500;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .choices input { accent-color: var(--route); }
+    .choices label:has(input:checked) { border-color: var(--route); background: color-mix(in srgb, var(--route) 12%, transparent); }
+
+    button {
+      font: inherit; font-weight: 600;
+      padding: 12px 22px;
+      border: 0; border-radius: 6px;
+      background: var(--route); color: #fff;
+      cursor: pointer;
+    }
+    @media (prefers-color-scheme: dark) { button { color: #06201e; } }
+    button:hover { background: var(--route-dark); }
+    @media (prefers-color-scheme: dark) { button:hover { color: #06201e; } }
+    button:disabled { opacity: .6; cursor: wait; }
+    button.secondary { background: transparent; color: var(--route-dark); border: 1px solid var(--route); }
+    button.secondary:hover { background: color-mix(in srgb, var(--route) 12%, transparent); color: var(--route-dark); }
+
+    #results, #report-msg { margin-top: 24px; }
+    .message { padding: 12px 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); }
+    .message.error { border-color: var(--alert); color: var(--alert); }
+    .message.success { border-color: var(--ok); color: var(--ok); }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--route);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .card dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
+    .card dt { color: var(--muted); }
+    .card dd { margin: 0; overflow-wrap: anywhere; }
+    .steps { margin: 8px 0 0; padding-left: 20px; }
+    details { margin-top: 28px; }
+    summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+    pre { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px; font-size: .85rem; }
+    .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+    @media (max-width: 560px) {
+      .report-grid { grid-template-columns: 1fr; }
+      .trip { padding-left: 48px; }
+      .stop-field::before { left: -33px; }
+      .trip::before { left: 21px; }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      button { transition: background .15s; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Plan your trip</h1>
+  <p class="sub">Choose where you are starting and where you are going.</p>
+
+  <form class="trip" id="search-form">
+    <div class="stop-field">
+      <label for="origin">From</label>
+      <select id="origin" required>
+        <option value="" selected disabled>Select a starting stop</option>
+        {% for stop in stops %}
+        <option value="{{ stop.stop_id }}">{{ stop.stop_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="stop-field">
+      <label for="destination">To</label>
+      <select id="destination" required>
+        <option value="" selected disabled>Select a destination stop</option>
+        {% for stop in stops %}
+        <option value="{{ stop.stop_id }}">{{ stop.stop_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <fieldset>
+      <legend>What matters most</legend>
+      <div class="choices">
+        <label><input type="radio" name="priority" value="balanced" checked> Balanced</label>
+        <label><input type="radio" name="priority" value="fastest"> Fastest</label>
+        <label><input type="radio" name="priority" value="cheapest"> Cheapest</label>
+        <label><input type="radio" name="priority" value="least_crowded"> Least crowded</label>
+      </div>
+    </fieldset>
+
+    <button type="submit" id="search-btn">Find routes</button>
+  </form>
+
+  <div id="results" aria-live="polite"></div>
+
+  <details>
+    <summary>Report how crowded a bus is</summary>
+    <form class="trip" id="report-form" style="padding-left:22px;margin-top:12px;">
+      <style>#report-form::before { display: none; } #report-form .stop-field::before { display: none; }</style>
+      <div class="report-grid">
+        <div>
+          <label for="r-route">Route</label>
+          <select id="r-route" required>
+            <option value="" selected disabled>Select a route</option>
+            {% for route in routes %}
+            <option value="{{ route.route_id }}">
+              {{ route.route_name or route.route_short_name or route.name or ('Route ' ~ route.route_id) }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="r-stop">Stop</label>
+          <select id="r-stop" required>
+            <option value="" selected disabled>Select a stop</option>
+            {% for stop in stops %}
+            <option value="{{ stop.stop_id }}">{{ stop.stop_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="r-level">Crowd level</label>
+          <select id="r-level" required>
+            <option value="1">1 - Plenty of empty seats</option>
+            <option value="2">2 - Some seats free</option>
+            <option value="3" selected>3 - Standing room</option>
+            <option value="4">4 - Very full</option>
+            <option value="5">5 - Cannot board</option>
+          </select>
+        </div>
+        <div>
+          <label for="r-count">Passengers (estimate)</label>
+          <input type="number" id="r-count" min="0" value="30">
+        </div>
+      </div>
+      <button type="submit" class="secondary" id="report-btn">Send report</button>
+      <div id="report-msg" aria-live="polite"></div>
+    </form>
+  </details>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  function prettyKey(key) {
+    return key.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+  }
+
+  // The engine's JSON layout is not fixed here, so this draws whatever it returns:
+  // simple values as a list, arrays as steps, and nested objects as their own cards.
+  function renderValue(value) {
+    if (value === null || value === undefined) return "-";
+    if (Array.isArray(value)) {
+      if (value.length === 0) return "None";
+      return '<ol class="steps">' + value.map((item) =>
+        "<li>" + (typeof item === "object" ? renderInline(item) : escapeHtml(item)) + "</li>"
+      ).join("") + "</ol>";
+    }
+    if (typeof value === "object") return renderInline(value);
+    return escapeHtml(value);
+  }
+
+  function renderInline(obj) {
+    return Object.entries(obj)
+      .map(([k, v]) => escapeHtml(prettyKey(k)) + ": " + (typeof v === "object" ? escapeHtml(JSON.stringify(v)) : escapeHtml(v)))
+      .join(", ");
+  }
+
+  function renderCard(obj, title) {
+    const rows = Object.entries(obj).map(([k, v]) =>
+      "<dt>" + escapeHtml(prettyKey(k)) + "</dt><dd>" + renderValue(v) + "</dd>"
+    ).join("");
+    return '<div class="card">' + (title ? "<h2>" + escapeHtml(title) + "</h2>" : "") + "<dl>" + rows + "</dl></div>";
+  }
+
+  function renderResult(result) {
+    let html = "";
+    const scalars = {};
+    const groups = [];
+
+    for (const [key, value] of Object.entries(result)) {
+      if (Array.isArray(value) && value.length && typeof value[0] === "object") {
+        groups.push([key, value]);
+      } else if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+        groups.push([key, [value]]);
+      } else {
+        scalars[key] = value;
+      }
+    }
+
+    if (Object.keys(scalars).length) html += renderCard(scalars, "Summary");
+    for (const [key, items] of groups) {
+      items.forEach((item, i) => {
+        html += renderCard(item, items.length > 1 ? prettyKey(key) + " " + (i + 1) : prettyKey(key));
+      });
+    }
+    html += "<details><summary>Raw engine output</summary><pre>" + escapeHtml(JSON.stringify(result, null, 2)) + "</pre></details>";
+    return html;
+  }
+
+  function showMessage(target, text, type) {
+    target.innerHTML = '<div class="message ' + type + '">' + escapeHtml(text) + "</div>";
+  }
+
+  $("search-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const results = $("results");
+    const button = $("search-btn");
+
+    const originId = parseInt($("origin").value, 10);
+    const destinationId = parseInt($("destination").value, 10);
+    const priority = document.querySelector('input[name="priority"]:checked').value;
+
+    if (originId === destinationId) {
+      showMessage(results, "Choose two different stops.", "error");
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Searching...";
+    try {
+      const response = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ origin_id: originId, destination_id: destinationId, priority })
+      });
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        showMessage(results, data.error || "Search failed. Try again.", "error");
+      } else {
+        results.innerHTML = renderResult(data);
+      }
+    } catch (err) {
+      showMessage(results, "Could not reach the server. Check that the app is running.", "error");
+    } finally {
+      button.disabled = false;
+      button.textContent = "Find routes";
+    }
+  });
+
+  $("report-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const message = $("report-msg");
+    const button = $("report-btn");
+
+    button.disabled = true;
+    try {
+      const response = await fetch("/api/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          route_id: $("r-route").value,
+          stop_id: $("r-stop").value,
+          crowd_level: $("r-level").value,
+          passenger_count: $("r-count").value || 30
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        showMessage(message, data.error || "Report failed. Try again.", "error");
+      } else {
+        showMessage(message, data.message || "Report sent.", "success");
+      }
+    } catch (err) {
+      showMessage(message, "Could not reach the server. Check that the app is running.", "error");
+    } finally {
+      button.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
